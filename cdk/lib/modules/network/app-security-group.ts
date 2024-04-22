@@ -11,6 +11,7 @@ export interface AppSecurityGroupProps {
 export class AppSecurityGroup extends Construct {
   public readonly bastionSecurityGroup: BaseSecurityGroup;
   public readonly vpcEndpointSecurityGroup: BaseSecurityGroup;
+  public readonly proxySecurityGroup: SecurityGroup;
 
   constructor(scope: Construct, id: string, props: AppSecurityGroupProps) {
     super(scope, id);
@@ -20,22 +21,35 @@ export class AppSecurityGroup extends Construct {
     // 踏み台用EC2のセキュリティグループを作成
     const bastionSecurityGroup = this.createBastionSecurityGroup(namePrefix, vpc);
 
+    // プロキシ用EC2のセキュリティグループを作成
+    const proxySecurityGroup = this.createProxySecurityGroup(namePrefix, vpc);
+
     // VPCエンドポイント用セキュリティグループを作成
-    const vpcEndpointSecurityGroup = this.createVpcEndpointSecurityGroup(
-      namePrefix,
-      vpc,
+    const vpcEndpointSecurityGroup = this.createVpcEndpointSecurityGroup(namePrefix, vpc, [
       bastionSecurityGroup,
-    );
+      proxySecurityGroup,
+    ]);
 
     this.bastionSecurityGroup = bastionSecurityGroup;
     this.vpcEndpointSecurityGroup = vpcEndpointSecurityGroup;
+    this.proxySecurityGroup = proxySecurityGroup;
   }
 
   private createBastionSecurityGroup(namePrefix: string, vpc: Vpc): SecurityGroup {
     const securityGroup = new BaseSecurityGroup(this, 'BastionSecurityGroup', {
       vpc: vpc,
-      securityGroupName: `${namePrefix}-bastion-ec2-sg`,
+      securityGroupName: `${namePrefix}-app-bastion-ec2-sg`,
     });
+
+    return securityGroup;
+  }
+
+  private createProxySecurityGroup(namePrefix: string, vpc: Vpc): SecurityGroup {
+    const securityGroup = new SecurityGroup(this, 'SquidEc2SecurityGroup', {
+      vpc: vpc,
+      securityGroupName: `${namePrefix}-app-squid-ec2-sg`,
+    });
+    securityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(3128));
 
     return securityGroup;
   }
@@ -43,16 +57,15 @@ export class AppSecurityGroup extends Construct {
   private createVpcEndpointSecurityGroup(
     namePrefix: string,
     vpc: Vpc,
-    bastionSecurityGroup: SecurityGroup,
+    SecurityGroups: SecurityGroup[],
   ): SecurityGroup {
     const securityGroup = new BaseSecurityGroup(this, 'VpcEndpointSecurityGroup', {
       vpc: vpc,
-      securityGroupName: `${namePrefix}-vpc-endpoint-sg`,
+      securityGroupName: `${namePrefix}-app-vpc-endpoint-sg`,
     });
-    securityGroup.addIngressRule(
-      Peer.securityGroupId(bastionSecurityGroup.securityGroupId),
-      ec2.Port.tcp(443),
-    );
+    SecurityGroups.forEach((sg) => {
+      securityGroup.addIngressRule(Peer.securityGroupId(sg.securityGroupId), ec2.Port.tcp(443));
+    });
 
     return securityGroup;
   }

@@ -33,11 +33,11 @@ export class AppVpc extends Construct {
       subnetConfiguration: [
         {
           cidrMask: 24,
-          name: 'private',
+          name: 'isolated',
           subnetType: SubnetType.PRIVATE_ISOLATED,
         },
       ],
-      createInternetGateway: false,
+      // createInternetGateway: false,
     });
   }
 

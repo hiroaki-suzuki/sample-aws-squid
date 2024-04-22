@@ -33,6 +33,9 @@ export class SquidEc2 extends Construct {
         {
           managedPolicyArn: 'arn:aws:iam::aws:policy/EC2InstanceConnect',
         },
+        {
+          managedPolicyArn: 'arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore',
+        },
       ],
     });
 

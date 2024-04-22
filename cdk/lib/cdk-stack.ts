@@ -50,6 +50,12 @@ export class CdkStack extends cdk.Stack {
       securityGroup: appSecurityGroup.bastionSecurityGroup,
     });
 
+    new SquidEc2(this, 'AppSquidEc2', {
+      namePrefix: `${namePrefix}-app`,
+      vpc: appVpc.vpc,
+      securityGroup: appSecurityGroup.proxySecurityGroup,
+    });
+
     // =================================================================================
     // Proxy用のリソースを作成
     // =================================================================================
@@ -67,8 +73,8 @@ export class CdkStack extends cdk.Stack {
     });
 
     // Squidサーバーを作成
-    new SquidEc2(this, 'SquidEc2', {
-      namePrefix,
+    new SquidEc2(this, 'ProxySquidEc2', {
+      namePrefix: `${namePrefix}-proxy`,
       vpc: proxyVpc.vpc,
       securityGroup: proxySecurityGroup.proxySecurityGroup,
     });
@@ -83,5 +89,10 @@ export class CdkStack extends cdk.Stack {
     //   proxyVpc: proxyVpc.vpc,
     // });
     // Transit Gatewayを作成
+    // new TransitGateway(this, 'TransitGateway', {
+    //   namePrefix,
+    //   appVpc: appVpc.vpc,
+    //   proxyVpc: proxyVpc.vpc,
+    // });
   }
 }
